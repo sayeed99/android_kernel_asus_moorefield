@@ -32,7 +32,12 @@ modules.builtin
 *.patch
 *.gcno
 *.zip
+<<<<<<< HEAD
 out/bzImage
+=======
+bzImage
+buildzf2
+>>>>>>> 5db6367... Added exfat support from dorimanx repo
 
 #
 # Top-level generic files
