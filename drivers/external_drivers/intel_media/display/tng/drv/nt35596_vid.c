@@ -32,6 +32,7 @@
 #include "mdfld_dsi_pkg_sender.h"
 #include "displays/nt35596_vid.h"
 #include <linux/HWVersion.h>
+#include "psb_drv.h"
 
 extern int Read_HW_ID(void);
 extern int Read_LCD_ID(void);
@@ -1506,7 +1507,12 @@ static int nt35596_vid_set_brightness(struct mdfld_dsi_config *dsi_config,
 	u32 reg_level;
 	union pwmctrl_reg pwmctrl;
 	static void __iomem *bl_en_mmio;
+	struct backlight_device *psb;
 
+	/* Re-assign the minimum brightness value to 2 */
+	//if (level < 2)
+	//	level = 2;
+	
 	reg_level = ~level & 0xFF;
 	pwmctrl.part.pwmswupdate = 0x1;
 	pwmctrl.part.pwmbu = PWM_BASE_UNIT;
@@ -1541,8 +1547,10 @@ static int nt35596_vid_set_brightness(struct mdfld_dsi_config *dsi_config,
 	} else {
 		DRM_ERROR("Cannot map pwmctrl\n");
 	}
-
-	printk("[DISP] brightness level = %d\n", level);
+	if (level)
+		{
+			//printk("[DISP NT] brightness level = %d\n", level);
+		}
 
 	return 0;
 }
