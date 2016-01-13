@@ -218,10 +218,10 @@ static unsigned long ksm_pages_unshared;
 static unsigned long ksm_rmap_items;
 
 /* Number of pages ksmd should scan in one batch */
-static unsigned int ksm_thread_pages_to_scan = 100;
+static unsigned int ksm_thread_pages_to_scan = 250;
 
 /* Milliseconds ksmd should sleep between batches */
-static unsigned int ksm_thread_sleep_millisecs = 20;
+static unsigned int ksm_thread_sleep_millisecs = 1500;
 
 #ifdef CONFIG_NUMA
 /* Zeroed when merging across nodes is not allowed */
@@ -2332,6 +2332,25 @@ static ssize_t merge_across_nodes_store(struct kobject *kobj,
 }
 KSM_ATTR(merge_across_nodes);
 #endif
+
+static ssize_t deferred_timer_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, 8, "%d\n", use_deferred_timer);
+}
+
+static ssize_t deferred_timer_store(struct kobject *kobj,				     struct kobj_attribute *attr,
+				     const char *buf, size_t count)
+{
+	unsigned long enable;
+	int err;
+
+	err = kstrtoul(buf, 10, &enable);
+	use_deferred_timer = enable;
+
+	return count;
+}
+KSM_ATTR(deferred_timer);
 
 static ssize_t pages_shared_show(struct kobject *kobj,
 				 struct kobj_attribute *attr, char *buf)
