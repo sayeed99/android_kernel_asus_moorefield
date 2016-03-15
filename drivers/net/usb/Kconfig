@@ -81,6 +81,11 @@ config USB_PEGASUS
 	  To compile this driver as a module, choose M here: the
 	  module will be called pegasus.
 
+config USB_QF9700
+	tristate "USB QF9700 based ethernet device support"
+	help
+	  Say Y here if you have QF9700 based usb-ethernet adapter.
+
 config USB_RTL8150
 	tristate "USB RTL8150 based ethernet device support"
 	select NET_CORE
