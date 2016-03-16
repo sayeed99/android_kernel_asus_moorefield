@@ -1,0 +1,54 @@
+Project name: FlareM Kernel
+ [31me1473d4[m -[33m (HEAD, origin/cm-13.0, origin/HEAD, cm-13.0)[m Remove some saved files [32m(14 minutes ago) [1;34m<eoghan2t9>[m
+ [31m34fb521[m -[33m[m cpufreq header fixes [32m(16 minutes ago) [1;34m<eoghan2t9>[m
+ [31m5d69a15[m -[33m[m Linux 3.10.101 [32m(33 minutes ago) [1;34m<Greg Kroah-Hartman>[m
+ [31mc9cbd78[m -[33m[m Revert: "crypto: af_alg - Disallow bind/setkey/... after accept(2)" [32m(33 minutes ago) [1;34m<Greg Kroah-Hartman>[m
+ [31m6e9aff0[m -[33m[m modules: fix longstanding /proc/kallsyms vs module insertion race. [32m(33 minutes ago) [1;34m<Rusty Russell>[m
+ [31m53d4c17[m -[33m[m lib/ucs2_string: Correct ucs2 -> utf8 conversion [32m(33 minutes ago) [1;34m<Jason Andryuk>[m
+ [31m74dfcc8[m -[33m[m efi: Add pstore variables to the deletion whitelist [32m(33 minutes ago) [1;34m<Matt Fleming>[m
+ [31m036d899[m -[33m[m efi: Make efivarfs entries immutable by default [32m(33 minutes ago) [1;34m<Peter Jones>[m
+ [31m357f7e0[m -[33m[m efi: Make our variable validation list include the guid [32m(33 minutes ago) [1;34m<Peter Jones>[m
+ [31m9edafc7[m -[33m[m efi: Do variable name validation tests in utf8 [32m(33 minutes ago) [1;34m<Peter Jones>[m
+ [31mbc2a9a9[m -[33m[m efi: Use ucs2_as_utf8 in efivarfs instead of open coding a bad version [32m(33 minutes ago) [1;34m<Peter Jones>[m
+ [31m6c44898[m -[33m[m lib/ucs2_string: Add ucs2 -> utf8 helper functions [32m(33 minutes ago) [1;34m<Peter Jones>[m
+ [31mb984681[m -[33m[m KVM: x86: move steal time initialization to vcpu entry time [32m(33 minutes ago) [1;34m<Marcelo Tosatti>[m
+ [31m6998fc0[m -[33m[m powerpc: Fix dedotify for binutils >= 2.26 [32m(33 minutes ago) [1;34m<Andreas Schwab>[m
+ [31mafd220b[m -[33m[m mac80211: minstrel_ht: set default tx aggregation timeout to 0 [32m(33 minutes ago) [1;34m<Felix Fietkau>[m
+ [31mfb3991a[m -[33m[m mac80211: fix use of uninitialised values in RX aggregation [32m(33 minutes ago) [1;34m<Chris Bainbridge>[m
+ [31meb595c9[m -[33m[m wext: fix message delay/ordering [32m(33 minutes ago) [1;34m<Johannes Berg>[m
+ [31m3832ae7[m -[33m[m ASoC: wm8958: Fix enum ctl accesses in a wrong type [32m(33 minutes ago) [1;34m<Takashi Iwai>[m
+ [31m19311d7[m -[33m[m ASoC: wm8994: Fix enum ctl accesses in a wrong type [32m(33 minutes ago) [1;34m<Takashi Iwai>[m
+ [31md771403[m -[33m[m tracing: Fix check for cpu online when event is disabled [32m(33 minutes ago) [1;34m<Steven Rostedt (Red Hat)>[m
+ [31mac886cb[m -[33m[m KVM: VMX: disable PEBS before a guest entry [32m(33 minutes ago) [1;34m<Radim Krčmář>[m
+ [31mf0add54[m -[33m[m fix selinux [32m(3 hours ago) [1;34m<sayeed99>[m
+ [31m4b8c197[m -[33m[m apply patch from upstream. [32m(4 hours ago) [1;34m<sayeed99>[m
+ [31m911bd5a[m -[33m[m Add smartassH3 cpu governor [32m(5 hours ago) [1;34m<friedrich420>[m
+ [31m90db845[m -[33m[m moorefield: defconfig: Disable Intel's scheduler changes [32m(18 hours ago) [1;34m<Christopher R. Palmer>[m
+ [31m8bf44ae[m -[33m[m moorefield: defconfig: Disable DEBUG_SPINLOCK [32m(18 hours ago) [1;34m<Christopher R. Palmer>[m
+ [31m7b4916c[m -[33m[m Linux 3.10.100 [32m(18 hours ago) [1;34m<Greg Kroah-Hartman>[m
+ [31m3c58ddd[m -[33m[m Revert "drm/radeon: hold reference to fences in radeon_sa_bo_new" [32m(18 hours ago) [1;34m<Greg Kroah-Hartman>[m
+ [31m7aefb4c[m -[33m[m ubi: Fix out of bounds write in volume update code [32m(18 hours ago) [1;34m<Richard Weinberger>[m
+ [31md23e367[m -[33m[m USB: serial: option: add support for Quectel UC20 [32m(18 hours ago) [1;34m<Yegor Yefremov>[m
+ [31m6304aee[m -[33m[m USB: serial: option: add support for Telit LE922 PID 0x1045 [32m(18 hours ago) [1;34m<Daniele Palmas>[m
+ [31m9e1a8ee[m -[33m[m USB: cp210x: Add ID for Parrot NMEA GPS Flight Recorder [32m(18 hours ago) [1;34m<Vittorio Alfieri>[m
+ [31mf32089a[m -[33m[m ALSA: timer: Fix broken compat timer user status ioctl [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31m4cdd734[m -[33m[m ALSA: hdspm: Fix zero-division [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31m3d88941[m -[33m[m ALSA: hdsp: Fix wrong boolean ctl value accesses [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31ma680a25[m -[33m[m ALSA: hdspm: Fix wrong boolean ctl value accesses [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31m8346a49[m -[33m[m ALSA: seq: oss: Don't drain at closing a client [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31m10c1801c[m -[33m[m ALSA: timer: Fix ioctls for X32 ABI [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31m99d1971[m -[33m[m ALSA: rawmidi: Fix ioctls X32 ABI [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31mfa7c0aa[m -[33m[m ALSA: ctl: Fix ioctls for X32 ABI [32m(18 hours ago) [1;34m<Takashi Iwai>[m
+ [31mbbca4e9[m -[33m[m Fix directory hardlinks from deleted directories [32m(18 hours ago) [1;34m<David Woodhouse>[m
+ [31m79f8cbc[m -[33m[m jffs2: Fix page lock / f->sem deadlock [32m(18 hours ago) [1;34m<David Woodhouse>[m
+ [31m6d39758[m -[33m[m Revert "jffs2: Fix lock acquisition order bug in jffs2_write_begin" [32m(18 hours ago) [1;34m<Thomas Betker>[m
+ [31m5afb052[m -[33m[m PM / sleep / x86: Fix crash on graph trace through x86 suspend [32m(18 hours ago) [1;34m<Todd E Brandt>[m
+ [31mab18f90[m -[33m[m libata: Align ata_device's id on a cacheline [32m(18 hours ago) [1;34m<Harvey Hunt>[m
+ [31mdabfbbe[m -[33m[m libata: fix HDIO_GET_32BIT ioctl [32m(18 hours ago) [1;34m<Arnd Bergmann>[m
+ [31mdc9cfa9[m -[33m[m drm/ast: Fix incorrect register check for DRAM width [32m(18 hours ago) [1;34m<Timothy Pearson>[m
+ [31m48d9b55[m -[33m[m x86/entry/compat: Add missing CLAC to entry_INT80_32 [32m(18 hours ago) [1;34m<Andy Lutomirski>[m
+ [31mb8fc98b[m -[33m[m CIFS: Fix SMB2+ interim response processing for read requests [32m(18 hours ago) [1;34m<Pavel Shilovsky>[m
+ [31m3b07e8d[m -[33m[m EDAC, mc_sysfs: Fix freeing bus' name [32m(18 hours ago) [1;34m<Borislav Petkov>[m
+ [31me9ba7ef[m -[33m[m locks: fix unlock when fcntl_setlk races with a close [32m(18 hours ago) [1;34m<Jeff Layton>[m
+ [31m92b8df0[m -[33m[m Match GCC with Git repo name [32m(18 hours ago) [1;34m<eoghan2t9>[m
+
