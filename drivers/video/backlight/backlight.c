@@ -22,7 +22,7 @@
 #endif
 
 #define SYSTEM_SET_BRIGHTNESS 15
-static unsigned long min_brightness=2;
+static unsigned long min_brightness=0;
 
 static const char *const backlight_types[] = {
 	[BACKLIGHT_RAW] = "raw",
@@ -153,7 +153,7 @@ static ssize_t backlight_store_brightness(struct device *dev,
 {
 	int rc;
 	struct backlight_device *bd = to_backlight_device(dev);
-	unsigned long brightness, tmp;
+	unsigned long brightness, tmp, actual_min_brightness;
 	
 	rc = kstrtoul(buf, 0, &brightness);
 	if (rc)
@@ -168,8 +168,9 @@ static ssize_t backlight_store_brightness(struct device *dev,
 		else {
 			if(brightness <= 100) //leave the possibility to set the max value
 			{
-				tmp = SYSTEM_SET_BRIGHTNESS - min_brightness;
-				brightness = (brightness >= SYSTEM_SET_BRIGHTNESS ? brightness-tmp : min_brightness); //otherwise "stretch" min brightness to 2%
+				actual_min_brightness = min_brightness + 2;
+				tmp = SYSTEM_SET_BRIGHTNESS - actual_min_brightness;
+				brightness = (brightness >= SYSTEM_SET_BRIGHTNESS ? brightness-tmp : actual_min_brightness); //otherwise "stretch" min brightness to 2%
 			}
 			pr_debug("set brightness to %lu\n", brightness);
 			bd->props.brightness = brightness;
@@ -232,10 +233,10 @@ static ssize_t backlight_store_min_brightness(struct device *dev,
 
 	rc = -ENXIO;
 
-	if(m_brightness > 1 && m_brightness < 16)
+	if(m_brightness < 14)
 		min_brightness = m_brightness;
 	else
-		printk("Invalid min_brightness, please specify a value between 2 and 15\n");
+		printk("Invalid min_brightness, please specify a less than 14\n");
 
 	return rc;
 }
