@@ -44,7 +44,7 @@ echo "SElinux set to Permissive"
  fi
 else
 echo "Setting Defconfig"
-export DEFCONFIG=cyanogenmod_zenfone2_defconfig
+export DEFCONFIG=nethunter_zenfone2_defconfig
 echo "SElinux set to Enforcing"
 fi
 echo "Setting bzImage Location For FlareM kernel By say99 Of XDA (thanks to eoghan2t7)"
