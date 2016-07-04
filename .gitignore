@@ -33,7 +33,6 @@ modules.builtin
 *.gcno
 *.zip
 out/bzImage
-buildzf2
 
 #
 # Top-level generic files
