@@ -41,6 +41,9 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+/* Boolean to indicate whether to use deferred timer or not */
+static bool use_deferred_timer = 1;
+
 #ifdef CONFIG_NUMA
 #define NUMA(x)		(x)
 #define DO_NUMA(x)	do { (x); } while (0)
@@ -2406,6 +2409,7 @@ static struct attribute *ksm_attrs[] = {
 	&pages_unshared_attr.attr,
 	&pages_volatile_attr.attr,
 	&full_scans_attr.attr,
+	&deferred_timer_attr.attr,
 #ifdef CONFIG_NUMA
 	&merge_across_nodes_attr.attr,
 #endif
