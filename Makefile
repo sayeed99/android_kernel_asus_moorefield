@@ -165,10 +165,6 @@ CCACHE := ccache
 #ARCH
 CARCH := x86_64
 
-#Toolchain
-GCC :=../toolchian6/intel/x86_64-linux-gnu/bin/x86_64-linux-android-
-
-
 # SUBARCH tells the usermode build what the underlying arch is.  That is set
 # first, and if a usermode build is happening, the "ARCH=um" on the command
 # line overrides the setting of ARCH below.  If a native build is happening,
