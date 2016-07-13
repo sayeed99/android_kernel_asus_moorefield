@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/x86_64 3.10.20 Kernel Configuration
+# Linux/x86_64 3.10.20_FlareM_v Kernel Configuration
 #
 CONFIG_64BIT=y
 CONFIG_X86_64=y
@@ -1614,6 +1614,7 @@ CONFIG_TRACE_ROUTER=y
 CONFIG_TRACE_SINK=y
 CONFIG_DEVMEM=y
 CONFIG_DEVKMEM=y
+CONFIG_FRANDOM=y
 # CONFIG_STALDRV is not set
 
 #
