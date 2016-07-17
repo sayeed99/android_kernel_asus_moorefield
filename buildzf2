@@ -6,12 +6,10 @@ NOW=$(date +"%d-%m-%Y")
 echo "Current Date : $NOW"
 echo "Applying Build Settings"
 
+echo "setting arch to x86_64"
 export ARCH=x86_64
 export CCOMPILE=$CROSS_COMPILE
 export CROSS_COMPILE=x86_64-linux-
-
-#Force selinux to enforcing (this makes sure that if we build cyanogen kernel just after nethunter, we have enforcing state)
-sed -i '50s|.*|  /tmp/anykernel/tools/mkbootimg --kernel /tmp/anykernel/bzImage --ramdisk /tmp/anykernel/initramfs.cpio.gz --cmdline "init=/init pci=noearly loglevel=0 vmalloc=256M androidboot.hardware=mofd_v1 watchdog.watchdog_thresh=60 androidboot.spid=xxxx:xxxx:xxxx:xxxx:xxxx:xxxx androidboot.serialno=01234567890123456789 snd_pcm.maximum_substreams=8 ip=50.0.0.2:50.0.0.1::255.255.255.0::usb0:on debug_locks=0 bootboost=1" --base 0x10000000 --pagesize 2048 --ramdisk_offset 0x01000000 --tags_offset 0x00000100 --second /tmp/anykernel/second.gz -o /tmp/anykernel/boot-new.img;|g' out/anykernel.sh
 
 #CONFIGS
 export SLEEP=1
@@ -21,33 +19,12 @@ echo "Setting Version Number"
 export VER=v$1
 echo "Setting Extra Version"
 export EV=EXTRAVERSION=_FlareM_v$1
-if [ -z "$2" ]
-  then
-    NH="na"
-else
-   NH=$2
-fi
-if [ -n "$2" ]
-then
- if [ $NH == "NH" ]
-  then
-echo "Setting Defconfig"
-export DEFCONFIG=kali_zenfone2_defconfig
-rm -rf .config
- elif [ $NH == "NH" ]
-  then
-#Kali Nethunter requires Permissive Selinux. Fixed this by changing selinux state in anykernel.sh
 
-sed -i '50s|.*|  /tmp/anykernel/tools/mkbootimg --kernel /tmp/anykernel/bzImage --ramdisk /tmp/anykernel/initramfs.cpio.gz --cmdline "init=/init pci=noearly loglevel=0 vmalloc=256M androidboot.hardware=mofd_v1 watchdog.watchdog_thresh=60 androidboot.spid=xxxx:xxxx:xxxx:xxxx:xxxx:xxxx androidboot.serialno=01234567890123456789 snd_pcm.maximum_substreams=8 ip=50.0.0.2:50.0.0.1::255.255.255.0::usb0:on debug_locks=0 bootboost=1 androidboot.selinux=permissive" --base 0x10000000 --pagesize 2048 --ramdisk_offset 0x01000000 --tags_offset 0x00000100 --second /tmp/anykernel/second.gz -o /tmp/anykernel/boot-new.img;|g' out/anykernel.sh
-
-echo "SElinux set to Permissive"
- fi
-else
 echo "Setting Defconfig"
-export DEFCONFIG=nethunter_zenfone2_defconfig
+export DEFCONFIG=cyanogenmod_zenfone2_defconfig
 echo "SElinux set to Enforcing"
-fi
-echo "Setting bzImage Location For FlareM kernel By say99 Of XDA (thanks to eoghan2t7)"
+
+#echo "Setting bzImage Location For FlareM kernel By say99 Of XDA (thanks to eoghan2t7)"
 export BZIMAGE=arch/x86/boot/bzImage
 echo "Enabling Graphite Optimizations"
 export ENABLE_GRAPHITE=true
@@ -90,8 +67,10 @@ else
 fi
 clear
 #make it a bit more beautiful :P
-echo "script made by eoghan2t7 of xda"
-printf "say thanks to him if this helped you :) \n\n"
+#echo "script made by eoghan2t7 of xda"
+#printf "say thanks to him if this helped you :) \n\n"
+echo ""
+echo ""
 echo "Current Date : $NOW"
 echo "Applying Build Settings : done"
 echo "Version Number = $VER"
@@ -117,9 +96,6 @@ make clean
 rm out/bzImage
 printf "cleaned files"
 printf "\n\nzip created\n"
-
-#Force selinux to enforcing (this makes sure that if we build cyanogen kernel just after nethunter, we have enforcing state)
-sed -i '50s|.*|  /tmp/anykernel/tools/mkbootimg --kernel /tmp/anykernel/bzImage --ramdisk /tmp/anykernel/initramfs.cpio.gz --cmdline "init=/init pci=noearly loglevel=0 vmalloc=256M androidboot.hardware=mofd_v1 watchdog.watchdog_thresh=60 androidboot.spid=xxxx:xxxx:xxxx:xxxx:xxxx:xxxx androidboot.serialno=01234567890123456789 snd_pcm.maximum_substreams=8 ip=50.0.0.2:50.0.0.1::255.255.255.0::usb0:on debug_locks=0 bootboost=1" --base 0x10000000 --pagesize 2048 --ramdisk_offset 0x01000000 --tags_offset 0x00000100 --second /tmp/anykernel/second.gz -o /tmp/anykernel/boot-new.img;|g' out/anykernel.sh
 
 end=`date +%s`
 runtime=$((end-start))
