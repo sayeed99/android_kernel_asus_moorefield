@@ -18,10 +18,10 @@ export CPUS=`nproc`
 echo "Setting Version Number"
 export VER=v$1
 echo "Setting Extra Version"
-export EV=EXTRAVERSION=_FlareM_v$1
+export EV=EXTRAVERSION=_FlareM_NH_v$1
 
 echo "Setting Defconfig"
-export DEFCONFIG=cyanogenmod_zenfone2_defconfig
+export DEFCONFIG=nethunter_zenfone2_defconfig
 echo "SElinux set to Enforcing"
 
 #echo "Setting bzImage Location For FlareM kernel By say99 Of XDA (thanks to eoghan2t7)"
