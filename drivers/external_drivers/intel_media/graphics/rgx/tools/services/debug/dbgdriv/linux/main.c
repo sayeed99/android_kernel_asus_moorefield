@@ -121,12 +121,13 @@ static struct file_operations dbgdrv_fops =
 /* Outward temp buffer used by IOCTL handler allocated once and grows as needed.
  * This optimisation means the debug driver performs less vmallocs/vfrees
  * reducing the chance of kernel vmalloc space exhaustion.
- * but is not multi-threaded optimised as it now uses a mutex to protect this
- * shared buffer serialising buffer reads. However the PDump client is not
- * multi-threaded at the moment.
+ * Singular out buffer for PDump UM reads is not multi-thread safe and so
+ * it now needs a mutex to protect it from multiple simultaneous reads in 
+ * the future.
  */
 static IMG_CHAR*  g_outTmpBuf = IMG_NULL;
 static IMG_UINT32 g_outTmpBufSize = 64*PAGE_SIZE;
+static void*      g_pvOutTmpBufMutex = IMG_NULL;
 
 IMG_VOID DBGDrvGetServiceTable(IMG_VOID **fn_table);
 
@@ -157,6 +158,7 @@ void cleanup_module(void)
 #if defined(SUPPORT_DBGDRV_EVENT_OBJECTS)
 	HostDestroyEventObjects();
 #endif
+	HostDestroyMutex(g_pvOutTmpBufMutex);
 	HostDestroyMutex(g_pvAPIMutex);
 	return;
 }
@@ -177,6 +179,12 @@ int init_module(void)
 
 	/* Init API mutex */
 	if ((g_pvAPIMutex=HostCreateMutex()) == IMG_NULL)
+	{
+		return -ENOMEM;
+	}
+
+	/* Init TmpBuf mutex */
+	if ((g_pvOutTmpBufMutex=HostCreateMutex()) == IMG_NULL)
 	{
 		return -ENOMEM;
 	}
@@ -283,7 +291,8 @@ static IMG_INT dbgdrv_ioctl_work(IMG_VOID *arg, IMG_BOOL bCompat)
 			goto init_failed;
 		}
 
-		HostAquireMutex(g_pvAPIMutex);
+		/* Serialise IOCTL Read op access to the singular output buffer */
+		HostAquireMutex(g_pvOutTmpBufMutex);
 
 		if ((g_outTmpBuf == IMG_NULL) || (psReadInParams->ui32OutBufferSize > g_outTmpBufSize))
 		{
@@ -294,10 +303,13 @@ static IMG_INT dbgdrv_ioctl_work(IMG_VOID *arg, IMG_BOOL bCompat)
 			g_outTmpBuf = vmalloc(g_outTmpBufSize);
 			if (!g_outTmpBuf)
 			{
-				HostReleaseMutex(g_pvAPIMutex);
+				HostReleaseMutex(g_pvOutTmpBufMutex);
 				goto init_failed;
 			}
 		}
+
+		/* Ensure only one thread is allowed into the DBGDriv core at a time */
+		HostAquireMutex(g_pvAPIMutex);
 
 		psReadOutParams->ui32DataRead = DBGDrivRead(psStream,
 										   psReadInParams->ui32BufID,
@@ -305,17 +317,20 @@ static IMG_INT dbgdrv_ioctl_work(IMG_VOID *arg, IMG_BOOL bCompat)
 										   g_outTmpBuf);
 		psReadOutParams->ui32SplitMarker = DBGDrivGetMarker(psStream);
 
+		HostReleaseMutex(g_pvAPIMutex);
+
 		pvOutBuffer = WIDEPTR_GET_PTR(psReadInParams->pui8OutBuffer, bCompat);
 
 		if (pvr_copy_to_user(pvOutBuffer,
 						g_outTmpBuf,
 						*pui32BytesCopied) != 0)
 		{
-			HostReleaseMutex(g_pvAPIMutex);
+			HostReleaseMutex(g_pvOutTmpBufMutex);
 			goto init_failed;
 		}
 
-		HostReleaseMutex(g_pvAPIMutex);
+		HostReleaseMutex(g_pvOutTmpBufMutex);
+
 	}
 	else
 	{

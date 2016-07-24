@@ -39,6 +39,7 @@
 #include "img_types.h"
 #include "pvrsrv.h"
 #include "rgxdevice.h"
+#include "rgxinit.h"
 
 
 #define DFRGX_HWPERF_DEBUG 0
@@ -58,6 +59,7 @@
 typedef struct _DFRGX_HWPERF_OBJ_ {
 	PVRSRV_DEVICE_NODE *pdev_node;
 	PVRSRV_RGXDEV_INFO *prgx_dev_info;
+	IMG_HANDLE gpu_util_user;
 	unsigned int is_device_acquired;
 } DFRGX_HWPERF_OBJ;
 
@@ -69,10 +71,10 @@ static DFRGX_HWPERF_OBJ *pDFRGX_Obj = NULL;
 
 static unsigned int gpu_rgx_acquire_device(void){
 
-	PVRSRV_DEVICE_TYPE *peDeviceTypeInt = IMG_NULL;
-	PVRSRV_DEVICE_CLASS *peDeviceClassInt = IMG_NULL;
-	IMG_UINT32 *pui32DeviceIndexInt = IMG_NULL;
-	IMG_HANDLE h_dev_cookie = IMG_NULL;
+	PVRSRV_DEVICE_TYPE *peDeviceTypeInt = NULL;
+	PVRSRV_DEVICE_CLASS *peDeviceClassInt = NULL;
+	IMG_UINT32 *pui32DeviceIndexInt = NULL;
+	IMG_HANDLE h_dev_cookie = NULL;
 	IMG_UINT32 num_devices = 0;
 	unsigned int error = DFRGX_HWPERF_OK;
 	IMG_UINT32 rgx_index = IMG_UINT32_MAX;
@@ -166,14 +168,16 @@ unsigned int gpu_rgx_get_util_stats(void* pvData)
 		!pDFRGX_Obj->pdev_node)
 		return 0;
 
-	utils = pDFRGX_Obj->prgx_dev_info->pfnGetGpuUtilStats(pDFRGX_Obj->pdev_node);
+	pDFRGX_Obj->prgx_dev_info->pfnGetGpuUtilStats(pDFRGX_Obj->pdev_node,
+			pDFRGX_Obj->gpu_util_user,
+			&utils);
 
 	putil_stats->bValid = utils.bValid;
-	putil_stats->bIncompleteData = utils.bIncompleteData;
-	putil_stats->ui32GpuStatActiveHigh = utils.ui32GpuStatActiveHigh;
-	putil_stats->ui32GpuStatActiveLow = utils.ui32GpuStatActiveLow;
-	putil_stats->ui32GpuStatBlocked = utils.ui32GpuStatBlocked;
-	putil_stats->ui32GpuStatIdle = utils.ui32GpuStatIdle;
+	putil_stats->ui64GpuStatActiveHigh = utils.ui64GpuStatActiveHigh;
+	putil_stats->ui64GpuStatActiveLow = utils.ui64GpuStatActiveLow;
+	putil_stats->ui64GpuStatBlocked = utils.ui64GpuStatBlocked;
+	putil_stats->ui64GpuStatIdle = utils.ui64GpuStatIdle;
+	putil_stats->ui64GpuStatCumulative = utils.ui64GpuStatCumulative;
 
 	return putil_stats->bValid;
 
@@ -202,6 +206,7 @@ unsigned int gpu_rgx_utilstats_init_obj(void){
 	}
 
 	pDFRGX_Obj->prgx_dev_info = (PVRSRV_RGXDEV_INFO*)pDFRGX_Obj->pdev_node->pvDevice;
+	RGXRegisterGpuUtilStats(&pDFRGX_Obj->gpu_util_user);
 go_out:
 	return error;
 go_free_obj:
@@ -216,6 +221,8 @@ unsigned int gpu_rgx_utilstats_deinit_obj(void){
 	if (!pDFRGX_Obj) {
 		return 0;
 	}
+
+	RGXUnregisterGpuUtilStats(pDFRGX_Obj->gpu_util_user);
 
 	kfree(pDFRGX_Obj);
 	pDFRGX_Obj = NULL;

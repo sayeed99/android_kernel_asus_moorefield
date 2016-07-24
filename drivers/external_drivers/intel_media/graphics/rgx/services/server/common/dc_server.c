@@ -175,11 +175,6 @@ IMG_UINT32 g_ui32DCDeviceCount;
 IMG_UINT32 g_ui32DCNextIndex;
 static DLLIST_NODE g_sDisplayContextsList;
 
-IMG_UINT64 g_psScpCompleteDataAddress[30];
-IMG_UINT32 g_psScpCompleteDataIndex = 0;
-IMG_UINT64 g_psDisplayContextData[8][30];
-IMG_UINT32 g_psDisplayContextDataIndex= 0;
-
 
 #if defined(DC_DEBUG) && defined(REFCOUNT_DEBUG)
 #define DC_REFCOUNT_PRINT(fmt, ...)		\
@@ -631,39 +626,41 @@ static PVRSRV_ERROR _DCPMRUnlockPhysAddresses(PMR_IMPL_PRIVDATA pvPriv)
 }
 
 static PVRSRV_ERROR _DCPMRDevPhysAddr(PMR_IMPL_PRIVDATA pvPriv,
-									  IMG_DEVMEM_OFFSET_T uiOffset,
+									  IMG_UINT32 ui32NumOfPages,
+									  IMG_DEVMEM_OFFSET_T *puiOffset,
+									  IMG_BOOL *pbValid,
 									  IMG_DEV_PHYADDR *psDevAddrPtr)
 {
 	DC_BUFFER_PMR_DATA *psPMRPriv = pvPriv;
-    IMG_UINT32 uiNumPages;
-    IMG_UINT32 uiLog2PageSize;
-    IMG_UINT32 uiPageSize;
+    IMG_UINT32 uiNumPages = psPMRPriv->ui32PageCount;
+    IMG_UINT32 uiLog2PageSize = psPMRPriv->uiLog2PageSize;
+    IMG_UINT32 uiPageSize = 1ULL << uiLog2PageSize;
     IMG_UINT32 uiPageIndex;
     IMG_UINT32 uiInPageOffset;
     IMG_DEV_PHYADDR sDevAddr;
+    IMG_UINT32 idx;
 
-    uiLog2PageSize = psPMRPriv->uiLog2PageSize;
-    uiNumPages = psPMRPriv->ui32PageCount;
+	for (idx=0; idx < ui32NumOfPages; idx++)
+	{
+		if (pbValid[idx])
+		{
+			/* verify the cast
+			   N.B.  Strictly... this could be triggered by an illegal uiOffset arg too. */
+			uiPageIndex = (IMG_UINT32)(puiOffset[idx] >> uiLog2PageSize);
+			PVR_ASSERT((IMG_DEVMEM_OFFSET_T)uiPageIndex << uiLog2PageSize == puiOffset[idx]);
+		
+			uiInPageOffset = (IMG_UINT32)(puiOffset[idx] - ((IMG_DEVMEM_OFFSET_T)uiPageIndex << uiLog2PageSize));		
+			PVR_ASSERT(puiOffset[idx] == ((IMG_DEVMEM_OFFSET_T)uiPageIndex << uiLog2PageSize) + uiInPageOffset);
+			PVR_ASSERT(uiPageIndex < uiNumPages);
+			PVR_ASSERT(uiInPageOffset < uiPageSize);
 
-    uiPageSize = 1ULL << uiLog2PageSize;
+			sDevAddr.uiAddr = psPMRPriv->pasDevPAddr[uiPageIndex].uiAddr;
+			PVR_ASSERT((sDevAddr.uiAddr & (uiPageSize - 1)) == 0);
 
-    uiPageIndex = (IMG_UINT32)(uiOffset >> uiLog2PageSize);
-    /* verify the cast */
-    /* N.B.  Strictly... this could be triggered by an illegal
-       uiOffset arg too. */
-    PVR_ASSERT((IMG_DEVMEM_OFFSET_T)uiPageIndex << uiLog2PageSize == uiOffset);
-
-    uiInPageOffset = (IMG_UINT32)(uiOffset - ((IMG_DEVMEM_OFFSET_T)uiPageIndex << uiLog2PageSize));
-    PVR_ASSERT(uiOffset == ((IMG_DEVMEM_OFFSET_T)uiPageIndex << uiLog2PageSize) + uiInPageOffset);
-
-    PVR_ASSERT(uiPageIndex < uiNumPages);
-    PVR_ASSERT(uiInPageOffset < uiPageSize);
-
-    sDevAddr.uiAddr = psPMRPriv->pasDevPAddr[uiPageIndex].uiAddr;
-	PVR_ASSERT((sDevAddr.uiAddr & (uiPageSize - 1)) == 0);
-
-    *psDevAddrPtr = sDevAddr;
-    psDevAddrPtr->uiAddr += uiInPageOffset;
+			psDevAddrPtr[idx] = sDevAddr;
+			psDevAddrPtr[idx].uiAddr += uiInPageOffset;
+		}
+	}
 
     return PVRSRV_OK;
 }
@@ -725,7 +722,7 @@ static PVRSRV_ERROR _DCPMRReadBytes(PMR_IMPL_PRIVDATA pvPriv,
             uiBytesCopyableFromPage = (1 << psPMRPriv->uiLog2PageSize)-uiInPageOffset;
         }
 
-		PhysHeapDevPAddrToCpuPAddr(psPMRPriv->psPhysHeap, &sCpuPAddr, &psPMRPriv->pasDevPAddr[uiPageIndex]);
+		PhysHeapDevPAddrToCpuPAddr(psPMRPriv->psPhysHeap, 1, &sCpuPAddr, &psPMRPriv->pasDevPAddr[uiPageIndex]);
 
         pvMapping = OSMapPhysToLin(sCpuPAddr,
 								   1 << psPMRPriv->uiLog2PageSize,
@@ -850,18 +847,21 @@ static IMG_VOID _DCDisplayContextNotify(PVRSRV_CMDCOMP_HANDLE hCmdCompHandle)
 static IMG_VOID _DCDebugRequest(PVRSRV_DBGREQ_HANDLE hDebugRequestHandle, IMG_UINT32 ui32VerbLevel)
 {
 	DC_DISPLAY_CONTEXT	*psDisplayContext = (DC_DISPLAY_CONTEXT*) hDebugRequestHandle;
+	DUMPDEBUG_PRINTF_FUNC *pfnDumpDebugPrintf = IMG_NULL;
+
+	pfnDumpDebugPrintf = g_pfnDumpDebugPrintf;
 
 	switch(ui32VerbLevel)
 	{
 		case DEBUG_REQUEST_VERBOSITY_LOW:
-			PVR_LOG(("Configs in-flight = %d", psDisplayContext->ui32ConfigsInFlight));
+			PVR_DUMPDEBUG_LOG(("Configs in-flight = %d", psDisplayContext->ui32ConfigsInFlight));
 			break;
 
 		case DEBUG_REQUEST_VERBOSITY_MEDIUM:
-			PVR_LOG(("Display context SCP status"));
+			PVR_DUMPDEBUG_LOG(("------[ Display context SCP status ]------"));
 			SCPDumpStatus(psDisplayContext->psSCPContext);
 			break;
-			
+
 		default:
 			break;
 	}
@@ -1646,15 +1646,6 @@ PVRSRV_ERROR DCDisplayContextConfigure(DC_DISPLAY_CONTEXT *psDisplayContext,
 		Set up command complete data
 	*/
 	psCompleteData = pvCompleteData;
-	if(g_psScpCompleteDataIndex==30)
-	{
-		g_psScpCompleteDataIndex = 0;
-		g_psScpCompleteDataAddress[g_psScpCompleteDataIndex] = psCompleteData;
-		g_psScpCompleteDataIndex++;
-	}else{
-		g_psScpCompleteDataAddress[g_psScpCompleteDataIndex] = psCompleteData;
-		g_psScpCompleteDataIndex++;
-	}
 	pvCompleteData = (IMG_PUINT8)pvCompleteData + sizeof(DC_CMD_COMP_DATA);
 
 	psCompleteData->psDisplayContext = psDisplayContext;
@@ -2060,7 +2051,7 @@ PVRSRV_ERROR DCRegisterDevice(DC_DEVICE_FUNCTIONS *psFuncTable,
 	psNew->hSystemBuffer = IMG_NULL;
 	psNew->psSystemBufferPMR = IMG_NULL;
 	psNew->sSystemContext.psDevice = psNew;
-	psNew->sSystemContext.hDisplayContext = hDeviceData;	
+	psNew->sSystemContext.hDisplayContext = hDeviceData;	/* FIXME: Is this the correct thing to do? */
 
 	OSLockAcquire(g_hDCListLock);
 	psNew->psNext = g_psDCDeviceList;
@@ -2155,41 +2146,16 @@ IMG_VOID DCDisplayConfigurationRetired(IMG_HANDLE hConfigData)
 {
 	DC_CMD_COMP_DATA *psData = hConfigData;
 	DC_DISPLAY_CONTEXT *psDisplayContext = psData->psDisplayContext;
-	IMG_UINT32 i, j;
+	IMG_UINT32 i;
 
 	DC_DEBUG_PRINT("DCDisplayConfigurationRetired: Command (%d) received", psData->ui32Token);
 	/* Sanity check */
 	if (!psData->bDirectNullFlip && psData->ui32Token != psDisplayContext->ui32TokenIn)
 	{
 		PVR_DPF((PVR_DBG_ERROR,
-				"Display config retired Token %d in %d out %d RefCount %d ConfigsInFlight %d Lock %p DisplayContext %p psData %p",
-				psData->ui32Token, psDisplayContext->ui32TokenIn, psDisplayContext->ui32TokenOut,
-				psDisplayContext->ui32RefCount, psDisplayContext->ui32ConfigsInFlight, psDisplayContext->hLock, psDisplayContext,psData));
-		/* PVR_ASSERT(IMG_FALSE); */
-		PVR_DPF((PVR_DBG_ERROR,"%d %d ======================>",g_psScpCompleteDataIndex,g_psDisplayContextDataIndex));
-		for(j = 0 ; j < 30 ; j++)
-		{
-			PVR_DPF((PVR_DBG_ERROR, "%p Token %d in %d out %d RefCount %d ConfigsInFlight %d Lock %p DisplayContext %p psData %p",
-				g_psScpCompleteDataAddress[j],g_psDisplayContextData[0][j],g_psDisplayContextData[1][j],g_psDisplayContextData[2][j],g_psDisplayContextData[3][j],
-							      g_psDisplayContextData[4][j],g_psDisplayContextData[5][j],g_psDisplayContextData[6][j],g_psDisplayContextData[7][j]));
-		}
-		PVR_DPF((PVR_DBG_ERROR,"END <========================"));
-	}else{
-		if( g_psDisplayContextDataIndex == 30 )
-		{
-			g_psDisplayContextDataIndex = 0;
-		}
-
-		g_psDisplayContextData[0][g_psDisplayContextDataIndex] = (IMG_UINT64)psData->ui32Token ;
-		g_psDisplayContextData[1][g_psDisplayContextDataIndex] = (IMG_UINT64)psDisplayContext->ui32TokenIn ;
-		g_psDisplayContextData[2][g_psDisplayContextDataIndex] = (IMG_UINT64)psDisplayContext->ui32TokenOut;
-		g_psDisplayContextData[3][g_psDisplayContextDataIndex] = (IMG_UINT64)psDisplayContext->ui32RefCount ;
-		g_psDisplayContextData[4][g_psDisplayContextDataIndex] = (IMG_UINT64)psDisplayContext->ui32ConfigsInFlight ;
-		g_psDisplayContextData[5][g_psDisplayContextDataIndex] = (IMG_UINT64)psDisplayContext->hLock;
-		g_psDisplayContextData[6][g_psDisplayContextDataIndex] = (IMG_UINT64)psDisplayContext;
-		g_psDisplayContextData[7][g_psDisplayContextDataIndex] = (IMG_UINT64)psData;
-
-		g_psDisplayContextDataIndex++;
+				"Display config retired in unexpected order (was %d, expecting %d)",
+				psData->ui32Token, psDisplayContext->ui32TokenIn));
+		PVR_ASSERT(IMG_FALSE);
 	}
 
 	OSLockAcquire(psDisplayContext->hLock);
@@ -2253,14 +2219,16 @@ PVRSRV_ERROR DCImportBufferAcquire(IMG_HANDLE hImport,
 	IMG_DEV_PHYADDR *pasDevPAddr;
 	IMG_DEVMEM_SIZE_T uiLogicalSize;
 	IMG_SIZE_T uiPageCount;
-	IMG_DEVMEM_OFFSET_T uiOffset = 0;
-	IMG_UINT32 i;
+	IMG_BOOL *pbValid;
 	PVRSRV_ERROR eError;
+#if defined(DEBUG)
+	IMG_UINT32 i;
+#endif
 
 	eError = PMR_LogicalSize(psPMR, &uiLogicalSize);
 	if (eError != PVRSRV_OK)
 	{
-		goto fail_getsize;
+		goto e0;
 	}
 
 	uiPageCount = TRUNCATE_64BITS_TO_SIZE_T(uiLogicalSize >> uiLog2PageSize);
@@ -2269,44 +2237,53 @@ PVRSRV_ERROR DCImportBufferAcquire(IMG_HANDLE hImport,
 	if (pasDevPAddr == IMG_NULL)
 	{
 		eError = PVRSRV_ERROR_OUT_OF_MEMORY;
-		goto fail_alloc;
+		goto e0;
 	}
-
-	OSMemSet(pasDevPAddr, 0, sizeof(IMG_DEV_PHYADDR) * uiPageCount);
+		
+	pbValid = OSAllocMem(uiPageCount * sizeof(IMG_BOOL));
+	if (pbValid == IMG_NULL)
+	{
+		eError = PVRSRV_ERROR_OUT_OF_MEMORY;
+		goto e1;
+	}
 
 	/* Lock the pages */
 	eError = PMRLockSysPhysAddresses(psPMR, uiLog2PageSize);
 	if (eError != PVRSRV_OK)
 	{
-		goto fail_lock;
+		goto e2;
 	}
 
-	/* Get each page one by one */
-	for (i=0;i<uiPageCount;i++)
+	/* Get page physical addresses */
+	eError = PMR_DevPhysAddr(psPMR, uiLog2PageSize, uiPageCount, 0,
+							 pasDevPAddr, pbValid);
+	if (eError != PVRSRV_OK)
 	{
-		IMG_BOOL bValid;
-
-		eError = PMR_DevPhysAddr(psPMR, uiOffset, &pasDevPAddr[i], &bValid);
-		if (eError != PVRSRV_OK)
-		{
-			goto fail_getphysaddr;
-		}
-
-		/* The DC import function doesn't support sparse allocations */
-		PVR_ASSERT(bValid);
-		uiOffset += 1ULL << uiLog2PageSize;
+		goto e3;
 	}
+
+#if defined(DEBUG)
+	/* The DC import function doesn't support 
+	   sparse allocations */
+	for (i=0; i<uiPageCount; i++)
+	{
+		PVR_ASSERT(pbValid[i]);
+	}
+#endif
+
+	OSFreeMem(pbValid);
 
 	*pui32PageCount = TRUNCATE_SIZE_T_TO_32BITS(uiPageCount);
 	*ppasDevPAddr = pasDevPAddr;
 	return PVRSRV_OK;
 
-fail_getphysaddr:
+e3:
 	PMRUnlockSysPhysAddresses(psPMR);
-fail_lock:
+e2:
+	OSFreeMem(pbValid);
+e1:
 	OSFreeMem(pasDevPAddr);
-fail_alloc:
-fail_getsize:
+e0:
 	return eError;
 }
 

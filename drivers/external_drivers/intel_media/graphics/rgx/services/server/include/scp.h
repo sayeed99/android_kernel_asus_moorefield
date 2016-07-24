@@ -48,9 +48,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "pvrsrv_error.h"
 #include "sync_server.h"
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 typedef struct _SCP_CONTEXT_ SCP_CONTEXT;	/*!< Opaque handle to a software command processor context */
 
@@ -187,16 +184,15 @@ IMG_VOID SCPCommandComplete(SCP_CONTEXT *psContext);
 IMG_EXPORT
 PVRSRV_ERROR SCPFlush(SCP_CONTEXT *psContext);
 
-
 /*************************************************************************/ /*!
 @Function       SCPHasPendingCommand
 
-@Description    Check if there is any pending command.
+@Description    Check the software command processor for pending commands.
 
-@Input          psSCPContext            Context to process
+@Input          psContext               Context to process
 
 @Return         IMG_TRUE if there is at least one pending command
-				IMG_FALSE none pending command
+				IMG_FALSE if there are no pending commands
 */
 /*****************************************************************************/
 IMG_EXPORT
@@ -228,9 +224,6 @@ IMG_VOID IMG_CALLCONV SCPDumpStatus(SCP_CONTEXT *psContext);
 IMG_IMPORT
 IMG_VOID IMG_CALLCONV SCPDestroy(SCP_CONTEXT *psContext);
 
-#if defined (__cplusplus)
-}
-#endif
 
 #endif /* SCP_H */
 

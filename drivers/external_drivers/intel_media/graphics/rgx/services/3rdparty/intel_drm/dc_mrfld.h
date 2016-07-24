@@ -128,6 +128,7 @@ typedef struct {
 	/* Timer to retire blocked flips */
         struct timer_list sFlipTimer;
         struct work_struct flip_retire_work;
+	int timestamp;
 
 } DC_MRFLD_DEVICE;
 
@@ -171,6 +172,7 @@ typedef struct {
 	IMG_UINT32 uiPrimaryFlip;
 	IMG_UINT32 uiOverlayFlip;
 	IMG_UINT32 uiSpriteFlip;
+	IMG_UINT32 uiCursorFlip;
 	DC_MRFLD_BUFFER *pasBuffers[0];
 } DC_MRFLD_FLIP;
 

@@ -551,12 +551,13 @@ IMG_VOID DCDisplayConfigurationRetired(IMG_HANDLE hConfigData);
 /*************************************************************************/ /*!
 @Function       DCDisplayHasPendingCommand
 
-@Description    Called by DC to check if there is still some pending command
-                in scp queue.
+@Description    Called to check if there are still pending commands in
+                the Software Command Processor queue.
 
-@Input          hConfigData             ConfigData that is being retired
+@Input          hConfigData             ConfigData to check for pending
+                                        commands
 
-@Return         IMG_TRUE there is at least one pending command
+@Return         IMG_TRUE if there is at least one pending command
 */
 /*****************************************************************************/
 IMG_BOOL DCDisplayHasPendingCommand(IMG_HANDLE hConfigData);

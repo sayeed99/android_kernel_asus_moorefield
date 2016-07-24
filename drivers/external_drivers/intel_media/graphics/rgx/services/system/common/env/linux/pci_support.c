@@ -44,6 +44,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <asm/mtrr.h>
 
 #include "pci_support.h"
+#include "allocmem.h"
 
 typedef	struct _PVR_PCI_DEV_TAG
 {
@@ -65,7 +66,7 @@ PVRSRV_PCI_DEV_HANDLE OSPCISetDev(IMG_VOID *pvPCICookie, HOST_PCI_INIT_FLAGS eFl
 	IMG_UINT32 i;
 	PVR_PCI_DEV *psPVRPCI;
 
-	psPVRPCI = kmalloc(sizeof(*psPVRPCI), GFP_KERNEL);
+	psPVRPCI = OSAllocMem(sizeof(*psPVRPCI));
 	if (psPVRPCI == IMG_NULL)
 	{
 		printk(KERN_ERR "OSPCISetDev: Couldn't allocate PVR PCI structure\n");
@@ -79,7 +80,7 @@ PVRSRV_PCI_DEV_HANDLE OSPCISetDev(IMG_VOID *pvPCICookie, HOST_PCI_INIT_FLAGS eFl
 	if (err != 0)
 	{
 		printk(KERN_ERR "OSPCISetDev: Couldn't enable device (%d)\n", err);
-		kfree(psPVRPCI);
+		OSFreeMem(psPVRPCI);
 		return IMG_NULL;
 	}
 
@@ -197,9 +198,9 @@ enum HOST_PCI_ADDR_RANGE_FUNC
 @Input          ui32Index               Address range index
 @Return		IMG_UINT32              Function dependent value
 */ /**************************************************************************/
-static IMG_UINT32 OSPCIAddrRangeFunc(enum HOST_PCI_ADDR_RANGE_FUNC eFunc,
-				     PVRSRV_PCI_DEV_HANDLE hPVRPCI,
-				     IMG_UINT32 ui32Index)
+static IMG_UINT64 OSPCIAddrRangeFunc(enum HOST_PCI_ADDR_RANGE_FUNC eFunc,
+										 PVRSRV_PCI_DEV_HANDLE hPVRPCI,
+										 IMG_UINT32 ui32Index)
 {
 	PVR_PCI_DEV *psPVRPCI = (PVR_PCI_DEV *)hPVRPCI;
 
@@ -261,7 +262,7 @@ static IMG_UINT32 OSPCIAddrRangeFunc(enum HOST_PCI_ADDR_RANGE_FUNC eFunc,
 @Return		IMG_UINT32              Length of address range or 0 if no 
                                         such range
 */ /**************************************************************************/
-IMG_UINT32 OSPCIAddrRangeLen(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index)
+IMG_UINT64 OSPCIAddrRangeLen(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index)
 {
 	return OSPCIAddrRangeFunc(HOST_PCI_ADDR_RANGE_FUNC_LEN, hPVRPCI, ui32Index);
 }
@@ -274,7 +275,7 @@ IMG_UINT32 OSPCIAddrRangeLen(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index
 @Return		IMG_UINT32              Start of address range or 0 if no 
                                         such range
 */ /**************************************************************************/
-IMG_UINT32 OSPCIAddrRangeStart(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index)
+IMG_UINT64 OSPCIAddrRangeStart(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index)
 {
 	return OSPCIAddrRangeFunc(HOST_PCI_ADDR_RANGE_FUNC_START, hPVRPCI, ui32Index); 
 }
@@ -287,7 +288,7 @@ IMG_UINT32 OSPCIAddrRangeStart(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Ind
 @Return		IMG_UINT32              End of address range or 0 if no such
                                         range
 */ /**************************************************************************/
-IMG_UINT32 OSPCIAddrRangeEnd(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index)
+IMG_UINT64 OSPCIAddrRangeEnd(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index)
 {
 	return OSPCIAddrRangeFunc(HOST_PCI_ADDR_RANGE_FUNC_END, hPVRPCI, ui32Index); 
 }
@@ -300,7 +301,7 @@ IMG_UINT32 OSPCIAddrRangeEnd(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui32Index
 @Return	        PVRSRV_ERROR	        Services error code
 */ /**************************************************************************/
 PVRSRV_ERROR OSPCIRequestAddrRange(PVRSRV_PCI_DEV_HANDLE hPVRPCI,
-				   IMG_UINT32 ui32Index)
+								   IMG_UINT32 ui32Index)
 {
 	if (OSPCIAddrRangeFunc(HOST_PCI_ADDR_RANGE_FUNC_REQUEST, hPVRPCI, ui32Index) == 0)
 	{
@@ -336,15 +337,15 @@ PVRSRV_ERROR OSPCIReleaseAddrRange(PVRSRV_PCI_DEV_HANDLE hPVRPCI, IMG_UINT32 ui3
 @Description    Request a given region from an address range for subsequent use
 @Input          hPVRPCI                 PCI device handle
 @Input          ui32Index               Address range index
-@Input          ui32Offset              Offset into the address range that forms 
+@Input          uiOffset              Offset into the address range that forms 
                                         the start of the region
-@Input          ui32Length              Length of the region
+@Input          uiLength              Length of the region
 @Return	        PVRSRV_ERROR	        Services error code
 */ /**************************************************************************/
 PVRSRV_ERROR OSPCIRequestAddrRegion(PVRSRV_PCI_DEV_HANDLE hPVRPCI,
-				    IMG_UINT32 ui32Index,
-				    IMG_UINT32 ui32Offset,
-				    IMG_UINT32 ui32Length)
+									IMG_UINT32 ui32Index,
+									IMG_UINT64 uiOffset,
+									IMG_UINT64 uiLength)
 {
 	PVR_PCI_DEV *psPVRPCI = (PVR_PCI_DEV *)hPVRPCI;
 	resource_size_t start;
@@ -354,21 +355,21 @@ PVRSRV_ERROR OSPCIRequestAddrRegion(PVRSRV_PCI_DEV_HANDLE hPVRPCI,
 	end = pci_resource_end(psPVRPCI->psPCIDev, ui32Index);
 
 	/* Check that the requested region is valid */
-	if ((start + ui32Offset + ui32Length - 1) > end)
+	if ((start + uiOffset + uiLength - 1) > end)
 	{
 		return PVRSRV_ERROR_BAD_REGION_SIZE_MISMATCH;
 	}
 
 	if (pci_resource_flags(psPVRPCI->psPCIDev, ui32Index) & IORESOURCE_IO)
 	{
-		if (request_region(start + ui32Offset, ui32Length, PVRSRV_MODNAME) == NULL)
+		if (request_region(start + uiOffset, uiLength, PVRSRV_MODNAME) == NULL)
 		{
 			return PVRSRV_ERROR_PCI_REGION_UNAVAILABLE;
 		}
 	}
 	else
 	{
-		if (request_mem_region(start + ui32Offset, ui32Length, PVRSRV_MODNAME) == NULL)
+		if (request_mem_region(start + uiOffset, uiLength, PVRSRV_MODNAME) == NULL)
 		{
 			return PVRSRV_ERROR_PCI_REGION_UNAVAILABLE;
 		}
@@ -389,9 +390,9 @@ PVRSRV_ERROR OSPCIRequestAddrRegion(PVRSRV_PCI_DEV_HANDLE hPVRPCI,
 @Return	        PVRSRV_ERROR	        Services error code
 */ /**************************************************************************/
 PVRSRV_ERROR OSPCIReleaseAddrRegion(PVRSRV_PCI_DEV_HANDLE hPVRPCI,
-				    IMG_UINT32 ui32Index,
-				    IMG_UINT32 ui32Offset,
-				    IMG_UINT32 ui32Length)
+									IMG_UINT32 ui32Index,
+									IMG_UINT64 uiOffset,
+									IMG_UINT64 uiLength)
 {
 	PVR_PCI_DEV *psPVRPCI = (PVR_PCI_DEV *)hPVRPCI;
 	resource_size_t start;
@@ -401,18 +402,18 @@ PVRSRV_ERROR OSPCIReleaseAddrRegion(PVRSRV_PCI_DEV_HANDLE hPVRPCI,
 	end = pci_resource_end(psPVRPCI->psPCIDev, ui32Index);
 
 	/* Check that the region is valid */
-	if ((start + ui32Offset + ui32Length - 1) > end)
+	if ((start + uiOffset + uiLength - 1) > end)
 	{
 		return PVRSRV_ERROR_BAD_REGION_SIZE_MISMATCH;
 	}
 
 	if (pci_resource_flags(psPVRPCI->psPCIDev, ui32Index) & IORESOURCE_IO)
 	{
-		release_region(start + ui32Offset, ui32Length);
+		release_region(start + uiOffset, uiLength);
 	}
 	else
 	{
-		release_mem_region(start + ui32Offset, ui32Length);
+		release_mem_region(start + uiOffset, uiLength);
 	}
 
 	return PVRSRV_OK;
@@ -453,7 +454,7 @@ PVRSRV_ERROR OSPCIReleaseDev(PVRSRV_PCI_DEV_HANDLE hPVRPCI)
 
 	pci_disable_device(psPVRPCI->psPCIDev);
 
-	kfree((IMG_VOID *)psPVRPCI);
+	OSFreeMem((IMG_VOID *)psPVRPCI);
 	/*not nulling pointer, copy on stack*/
 
 	return PVRSRV_OK;

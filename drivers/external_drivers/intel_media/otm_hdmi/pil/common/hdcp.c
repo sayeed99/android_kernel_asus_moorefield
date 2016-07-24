@@ -959,6 +959,7 @@ static bool hdcp_start(void)
 	/* blank TV screen */
 	ipil_enable_planes_on_pipe(1, false);
 
+#ifndef CONFIG_SUPPORT_HDMI_NO_DISPLAY
 	/* Check HDCP Status */
 	if (ipil_hdcp_is_ready() == false) {
 		pr_err("hdcp: hdcp is not ready\n");
@@ -970,7 +971,7 @@ static bool hdcp_start(void)
 		pr_debug("hdcp: stage 1 authentication fails\n");
 		return false;
 	}
-
+#endif
 	/* un-blank TV screen */
 	ipil_enable_planes_on_pipe(1, true);
 
