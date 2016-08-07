@@ -65,7 +65,7 @@ static const unsigned freqs[] = { 400000, 300000, 200000, 100000 };
  * performance cost, and for other reasons may not always be desired.
  * So we allow it it to be disabled.
  */
-bool use_spi_crc = 0;
+bool use_spi_crc = 1;
 module_param(use_spi_crc, bool, 0);
 
 /*
@@ -99,7 +99,7 @@ static const struct file_operations sd_power_proc_fops = {
 extern int intel_scu_ipc_ioread8(u16 addr, u8 *data);
 extern int intel_scu_ipc_iowrite8(u16 addr, u8 data);
 extern int sd_power_off;
-
+bool sd_retry_detect = 0;
 /*
  * Internal function. Schedule delayed work in the MMC work queue.
  */
@@ -404,13 +404,8 @@ EXPORT_SYMBOL(mmc_start_bkops);
  */
 static void mmc_wait_data_done(struct mmc_request *mrq)
 {
-	unsigned long flags;
-	struct mmc_context_info *context_info = &mrq->host->context_info;
-
-	spin_lock_irqsave(&context_info->lock, flags);
 	mrq->host->context_info.is_done_rcv = true;
 	wake_up_interruptible(&mrq->host->context_info.wait);
-	spin_unlock_irqrestore(&context_info->lock, flags);
 }
 
 static void mmc_wait_done(struct mmc_request *mrq)
@@ -471,7 +466,6 @@ static int mmc_wait_for_data_req_done(struct mmc_host *host,
 	struct mmc_command *cmd;
 	struct mmc_context_info *context_info = &host->context_info;
 	int err;
-	bool is_done_rcv = false;
 	unsigned long flags;
 
 	while (1) {
@@ -480,9 +474,8 @@ static int mmc_wait_for_data_req_done(struct mmc_host *host,
 				 context_info->is_new_req));
 		spin_lock_irqsave(&context_info->lock, flags);
 		context_info->is_waiting_last_req = false;
-		is_done_rcv = context_info->is_done_rcv;
 		spin_unlock_irqrestore(&context_info->lock, flags);
-		if (is_done_rcv) {
+		if (context_info->is_done_rcv) {
 			context_info->is_done_rcv = false;
 			context_info->is_new_req = false;
 			cmd = mrq->cmd;
@@ -1834,7 +1827,7 @@ void mmc_detect_change(struct mmc_host *host, unsigned long delay)
 	host->detect_change = 1;
 	if ((strcmp(mmc_hostname(host), "mmc1") == 0))
 		pr_info("%s: mmc_detect_change, SD card %s\n",
-			mmc_hostname(host), gpio_get_value(77) ? "removed" : "inserted");
+			mmc_hostname(host), gpio_get_value(77) ? "non-present" : "present");
 			// gpio-77 : SD_CD
 	wake_lock(&host->detect_wake_lock);
 	mmc_schedule_delayed_work(&host->detect, delay);
@@ -2623,11 +2616,19 @@ void mmc_rescan(struct work_struct *work)
 				value &= 0xFD;                          //VSWITCHEN Disable
 				intel_scu_ipc_iowrite8(0xAF, value);
 				printk("%s: Set V_3P30_SW to Disable\n", mmc_hostname(host));
+				if(sd_retry_detect == 0 && ((strcmp(mmc_hostname(host), "mmc1") == 0)) && (gpio_get_value(77) == 0)) {
+					pr_err("%s: mmc_rescan fialed, try re-detect sd card\n", mmc_hostname(host));
+					mmc_detect_change(host, msecs_to_jiffies(500));
+				}
+				sd_retry_detect = 1;
 			}
 		}
 		//<ASUS_BSP->
 	}
 	mmc_release_host(host);
+
+	if(i < ARRAY_SIZE(freqs) && ((strcmp(mmc_hostname(host), "mmc1") == 0)))
+		sd_retry_detect = 1;
 
  out:
 	mmc_emergency_setup(host);

@@ -64,7 +64,6 @@ int emmc_perf_degr(void)
 	}
 #endif
 
-
 /*
  * Given the decoded CSD structure, decode the raw CID to our CID structure.
  */
@@ -573,6 +572,18 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		card->ext_csd.data_sector_size = 512;
 	}
 
+	/* eMMC v5.0 or later */
+	if (card->ext_csd.rev > 6) {
+		card->ext_csd.health[0] = ext_csd[EXT_CSD_HEALTH + 0];
+		card->ext_csd.health[1] = ext_csd[EXT_CSD_HEALTH + 1];
+		card->ext_csd.health[2] = ext_csd[EXT_CSD_HEALTH + 2];
+	}else{
+		card->ext_csd.health[0] = -1;
+		card->ext_csd.health[1] = -1;
+		card->ext_csd.health[2] = -1;
+	}
+	pr_info("%s: health = 0x%x 0x%x 0x%x, ext_csd.rev = %d\n",mmc_hostname(card->host), card->ext_csd.health[0], card->ext_csd.health[1], card->ext_csd.health[2], card->ext_csd.rev);
+
 	/*
 	 * If use legacy relaible write, then the blk counts must not
 	 * big than the relaible write sectors
@@ -679,6 +690,7 @@ MMC_DEV_ATTR(hw_reset_support, "%d\n", card->ext_csd.rst_n_function);
 MMC_DEV_ATTR(bkops_support, "%d\n", card->ext_csd.bkops);
 MMC_DEV_ATTR(bkops_enable, "%d\n", card->ext_csd.bkops_en);
 MMC_DEV_ATTR(rpmb_size, "%d\n", card->ext_csd.rpmb_size);
+MMC_DEV_ATTR(health,"0x%x 0x%x 0x%x\n",card->ext_csd.health[0],card->ext_csd.health[1],card->ext_csd.health[2]);
 
 /* init gpp_wppart as an invalide GPP */
 static unsigned int gpp_wppart = EXT_CSD_PART_CONFIG_ACC_GP0 - 1;
@@ -841,6 +853,7 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_gpp_wppart.attr,
 	&dev_attr_gpp_wpgroup.attr,
 	&dev_attr_gpp_wp.attr,
+	&dev_attr_health.attr,
 	NULL,
 };
 
